@@ -28,6 +28,7 @@ class TicketSystem
 
   constructor (processes: set<Process>)
     ensures Valid()
+    ensures this.processes == processes
   {
     this.processes := processes;
     nextTicket, serving := 0, 0;
@@ -74,5 +75,28 @@ class TicketSystem
     requires controlStates[p] == controlStates[q] == Eating
     ensures p == q 
   {
+  }
+}
+
+method Run(processes: set<Process>)
+  requires processes != {}
+  decreases *
+{
+  var ts := new TicketSystem(processes);
+  var schedule := [];
+
+  while true 
+    invariant ts.Valid()
+    decreases *
+  {
+    var p :| p in ts.processes;
+
+    schedule := schedule + [p];
+
+    match ts.controlStates[p] {
+      case Thinking => ts.Request(p);
+      case Hungry => ts.Enter(p);
+      case Eating => ts.Leave(p);
+    }
   }
 }
