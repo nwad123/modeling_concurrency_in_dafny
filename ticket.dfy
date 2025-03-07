@@ -1,4 +1,4 @@
-type Process(==)
+type Process(==) = int
 
 datatype ControlState = 
   | Thinking
@@ -14,10 +14,16 @@ class TicketSystem
 
   const processes: set<Process>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this
   {
-    controlStates.Keys == tickets.Keys == processes
+    && controlStates.Keys == tickets.Keys == processes
+    && (forall p, q :: 
+         p in processes && q in processes && p != q && controlStates[p] != Thinking && controlStates[q] != Thinking 
+         ==> tickets[p] != tickets[q])
+    && nextTicket >= serving
+    && (forall p :: p in processes && controlStates[p] != Thinking ==> serving <= tickets[p] < nextTicket)
+    && (forall p :: p in processes && controlStates[p] == Eating ==> tickets[p] == serving)
   }
 
   constructor (processes: set<Process>)
@@ -57,7 +63,7 @@ class TicketSystem
     modifies this
   {
     controlStates := controlStates[p := Thinking];
-    nextTicket := nextTicket + 1;
+    serving := serving + 1;
   }
 
   // If two processes are both "eating", then they must be the 
@@ -68,6 +74,5 @@ class TicketSystem
     requires controlStates[p] == controlStates[q] == Eating
     ensures p == q 
   {
-    
   }
 }
