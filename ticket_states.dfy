@@ -7,6 +7,9 @@ datatype ControlState =
 
 datatype State = State(nextTicket: int, serving: int, controlStates: map<Process, ControlState>, tickets: map<Process, int>)
 
+type Schedule = nat -> Process
+type Trace = nat -> State
+
 const processes: set<Process>
 
 predicate Valid(s: State)
@@ -18,6 +21,29 @@ predicate Valid(s: State)
   && s.nextTicket >= s.serving
   && (forall p :: p in processes && s.controlStates[p] != Thinking ==> s.serving <= s.tickets[p] < s.nextTicket)
   && (forall p :: p in processes && s.controlStates[p] == Eating ==> s.tickets[p] == s.serving)
+}
+
+ghost predicate isSchedule(s: Schedule)
+{
+  forall i :: s(i) in processes
+}
+
+ghost predicate isTrace(t: Trace, s: Schedule)
+  requires isSchedule(s)
+{
+  && Init(t(0))
+  && (forall i: nat :: Valid(t(i)) && NextP(t(i), s(i), t(i+1)))
+}
+
+ghost predicate FairSchedule(s: Schedule)
+{
+  && isSchedule(s)
+  && forall p,n :: p in processes ==> hasNext(s, p, n)
+}
+
+ghost predicate hasNext(s: Schedule, p: Process, n: nat)
+{
+  exists n' :: n <= n' && s(n') == p
 }
 
 lemma MutualExlusion(s: State, p: Process, q: Process)
